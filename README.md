@@ -39,6 +39,8 @@ No LLM or OpenRouter credits are required. The command parser is deterministic a
 
 ```bash
 npm run agent -- "run quant paper once with maker and taker dual venues orders 2 markets 8"
+npm run agent -- "run quant shadow once kalshi taker min score 40 max cost 500 qty 3"
+npm run agent -- --json "run hybrid paper once markets 4 orders 1"
 ```
 
 Or through HTTP:

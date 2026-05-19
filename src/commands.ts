@@ -78,6 +78,26 @@ export function parseAgentCommand(command: string): { action: AgentCommandResult
     config.intervalMs = unit.startsWith('m') ? value * 60_000 : value * 1_000
   }
 
+  const minScore = lower.match(/(?:min\s*score|score)\s*[:=]?\s*(\d+(?:\.\d+)?)/)
+  if (minScore?.[1]) {
+    config.risk = { ...(config.risk || {}), minScore: Number(minScore[1]) }
+  }
+
+  const maxCost = lower.match(/(?:max\s*cost|cost)\s*[:=]?\s*(\d+)/)
+  if (maxCost?.[1]) {
+    config.risk = { ...(config.risk || {}), maxPerTradeCents: Number(maxCost[1]) }
+  }
+
+  const maxGross = lower.match(/(?:max\s*gross|gross)\s*[:=]?\s*(\d+)/)
+  if (maxGross?.[1]) {
+    config.risk = { ...(config.risk || {}), maxGrossCents: Number(maxGross[1]) }
+  }
+
+  const quantity = lower.match(/(?:qty|quantity)\s*[:=]?\s*(\d+)/)
+  if (quantity?.[1]) {
+    config.risk = { ...(config.risk || {}), maxQuantity: Number(quantity[1]) }
+  }
+
   if (lower.includes('stop')) return { action: 'stop', config }
   if (lower.includes('status')) return { action: 'status', config }
   if (lower.includes('tick') || lower.includes('once') || lower.includes('run now')) return { action: 'tick', config }

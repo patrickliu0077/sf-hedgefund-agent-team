@@ -98,7 +98,7 @@ export function createApp(args: {
   }))
 
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    const status = isZodError(error) ? 400 : 500
+    const status = isZodError(error) || isClientError(error) ? 400 : 500
     res.status(status).json({
       ok: false,
       error: error instanceof Error ? error.message : String(error),
@@ -143,4 +143,12 @@ function redactConfig(config: unknown): unknown {
 
 function isZodError(error: unknown): error is { issues: unknown[] } {
   return Boolean(error && typeof error === 'object' && 'issues' in error)
+}
+
+function isClientError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return [
+    'live mode requires',
+    'invalid control token',
+  ].some(prefix => error.message.startsWith(prefix))
 }

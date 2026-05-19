@@ -20,6 +20,17 @@ describe('risk manager', () => {
     expect(decisions[0]?.status).toBe('blocked')
     expect(decisions[0]?.risk?.reasons.join(' ')).toContain('below minScore')
   })
+
+  it('chooses one execution style per candidate when maker and taker are both enabled', () => {
+    const decisions = buildDecisions(
+      'run_1',
+      [candidate({ id: 'cand_1' }), candidate({ id: 'cand_2', ticker: 'KXTEST2' })],
+      config({ styles: ['maker', 'taker'], maxOrdersPerTick: 2 }),
+      state(),
+    )
+    expect(decisions).toHaveLength(2)
+    expect(new Set(decisions.map(decision => decision.candidateId)).size).toBe(2)
+  })
 })
 
 function candidate(overrides: Partial<MarketCandidate> = {}): MarketCandidate {

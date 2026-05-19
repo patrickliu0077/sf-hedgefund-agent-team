@@ -9,20 +9,18 @@ export function buildDecisions(
   state: LoopState,
 ): TradeDecision[] {
   const decisions: TradeDecision[] = []
-  const styles: ExecutionStyle[] = config.styles.length ? config.styles : ['taker']
 
   for (const candidate of candidates) {
-    for (const style of styles) {
-      if (decisions.length >= config.maxOrdersPerTick) return decisions
-      const decision = decisionFromCandidate(runId, candidate, style, config)
-      const risk = evaluateRisk(decision, config, state, decisions)
-      decision.risk = risk
-      decision.status = risk.allowed ? 'approved' : 'blocked'
-      if (risk.adjustedQuantity) decision.quantity = risk.adjustedQuantity
-      if (risk.adjustedLimitPrice) decision.limitPrice = risk.adjustedLimitPrice
-      decision.expectedCostCents = decision.quantity * decision.limitPrice
-      decisions.push(decision)
-    }
+    if (decisions.length >= config.maxOrdersPerTick) return decisions
+    const style = selectExecutionStyle(candidate, config.styles)
+    const decision = decisionFromCandidate(runId, candidate, style, config)
+    const risk = evaluateRisk(decision, config, state, decisions)
+    decision.risk = risk
+    decision.status = risk.allowed ? 'approved' : 'blocked'
+    if (risk.adjustedQuantity) decision.quantity = risk.adjustedQuantity
+    if (risk.adjustedLimitPrice) decision.limitPrice = risk.adjustedLimitPrice
+    decision.expectedCostCents = decision.quantity * decision.limitPrice
+    decisions.push(decision)
   }
 
   return decisions
@@ -127,6 +125,17 @@ function decisionFromCandidate(
     rationale: `${candidate.strategy}/${style}: ${candidate.reasons.join('; ')}`,
     status: 'proposed',
   }
+}
+
+function selectExecutionStyle(candidate: MarketCandidate, styles: ExecutionStyle[]): ExecutionStyle {
+  if (styles.length === 0) return 'taker'
+  if (styles.length === 1) return styles[0] || 'taker'
+  const liquidity = candidate.liquidityScore ?? 0
+  const confidence = candidate.confidence ?? 0
+  const wantsTaker = liquidity >= 65 && confidence >= 55 && candidate.priceCents !== undefined
+  if (wantsTaker && styles.includes('taker')) return 'taker'
+  if (styles.includes('maker')) return 'maker'
+  return styles[0] || 'taker'
 }
 
 function isBlockedJurisdiction(jurisdiction: string | undefined, blocked: string[]): boolean {

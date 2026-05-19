@@ -19,4 +19,14 @@ describe('agent-native command parser', () => {
     expect(parseAgentCommand('stop the loop').action).toBe('stop')
     expect(parseAgentCommand('status please').action).toBe('status')
   })
+
+  it('parses risk overrides from desk commands', () => {
+    const parsed = parseAgentCommand('run quant shadow once kalshi taker min score 40 max cost 500 gross 2000 qty 3')
+    expect(parsed.config.risk).toMatchObject({
+      minScore: 40,
+      maxPerTradeCents: 500,
+      maxGrossCents: 2000,
+      maxQuantity: 3,
+    })
+  })
 })
