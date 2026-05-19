@@ -1,0 +1,36 @@
+{
+  "name": "sf-hedgefund-agent-team",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Docker/Fly-ready SimpleFunctions SDK + Agent SDK hedge-fund loop with research, monitoring, execution, and risk roles.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "smoke": "tsx scripts/smoke.ts",
+    "agent": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@spfunctions/agent": "1.0.0",
+    "@spfunctions/sdk": "1.0.0",
+    "express": "^5.2.1",
+    "nanoid": "^5.1.11",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.1",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.6"
+  }
+}
