@@ -9,12 +9,13 @@ It runs four roles:
 - Risk: account-level and jurisdiction-level safety gates before any execution.
 - Execution: paper, shadow, or live `execution.place` path with maker/taker styles.
 
-The app is intentionally not a raw venue API wrapper. It uses the SDK/Agent SDK manifest, runtime checks, trace logging, unified market screens, policy gates, and one loop shape across Kalshi and Polymarket. US Polymarket live execution is blocked by default.
+The app is intentionally not a raw venue API wrapper. It uses the SDK/Agent SDK manifest, runtime checks, trace logging, unified market screens, policy gates, and one loop shape across Kalshi and Polymarket. US Polymarket live execution is blocked by default. A no-key smoke test can verify package and manifest wiring, but real research/monitoring loops should run with `SF_API_KEY`.
 
 ## Quickstart
 
 ```bash
 cp .env.example .env
+# Add SF_API_KEY to .env for full research/monitoring loops.
 npm install
 npm run smoke
 npm run dev

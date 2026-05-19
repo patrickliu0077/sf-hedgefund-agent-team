@@ -11,7 +11,7 @@ const loop = mergeLoopConfig(runtime.defaultLoop, {
 
 const team = await createSfTeam(runtime, loop)
 const execution = await team.research.describe('execution.place')
-const world = await team.client.world.get({ path: 'global' })
+const world = runtime.sfApiKey ? await team.client.world.get({ path: 'global' }) : null
 
 console.log(JSON.stringify({
   ok: true,
@@ -20,7 +20,8 @@ console.log(JSON.stringify({
   manifest: team.manifest.schemaVersion,
   toolCount: team.manifest.tools.length,
   executionVenue: execution?.docs?.venue,
-  worldKeys: Object.keys(world).slice(0, 8),
+  worldKeys: world ? Object.keys(world).slice(0, 8) : [],
+  liveRead: Boolean(world),
 }, null, 2))
 
 if (execution?.docs?.venue !== 'kalshi-or-polymarket-runtime') {
