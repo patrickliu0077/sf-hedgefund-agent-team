@@ -32,7 +32,7 @@ export function createApp(args: {
   app.get('/v1/status', (_req, res) => {
     res.json({
       state: orchestrator.getState(),
-      config: redactConfig(orchestrator.getConfig()),
+      config: summarizeConfig(orchestrator.getConfig()),
     })
   })
 
@@ -64,7 +64,7 @@ export function createApp(args: {
   app.post('/v1/control/tick', requireControlToken(config), asyncRoute(async (req, res) => {
     const input = loopRequestSchema.parse(req.body || {})
     const run = await orchestrator.tick(input)
-    res.json({ ok: true, run })
+    res.json({ ok: true, run: maybeSummarizeRun(req, run) })
   }))
 
   app.post('/v1/agent/command', requireControlToken(config), asyncRoute(async (req, res) => {
@@ -79,12 +79,13 @@ export function createApp(args: {
       tick: input => orchestrator.tick(input),
       status: () => orchestrator.getState(),
     })
-    res.json({ ok: true, result })
+    res.json({ ok: true, result: maybeSummarizeCommandResult(req, result) })
   }))
 
   app.get('/v1/runs', asyncRoute(async (req, res) => {
     const limit = readLimit(req.query.limit, 50)
-    res.json({ ok: true, runs: await store.listRuns(limit) })
+    const runs = await store.listRuns(limit)
+    res.json({ ok: true, runs: wantsFullDetail(req) ? runs : runs.map(summarizeRun) })
   }))
 
   app.get('/v1/decisions', asyncRoute(async (req, res) => {
@@ -137,10 +138,6 @@ function readLimit(value: unknown, fallback: number): number {
   return Number.isFinite(parsed) ? Math.max(1, Math.min(500, Math.trunc(parsed))) : fallback
 }
 
-function redactConfig(config: unknown): unknown {
-  return config
-}
-
 function isZodError(error: unknown): error is { issues: unknown[] } {
   return Boolean(error && typeof error === 'object' && 'issues' in error)
 }
@@ -151,4 +148,110 @@ function isClientError(error: unknown): boolean {
     'live mode requires',
     'invalid control token',
   ].some(prefix => error.message.startsWith(prefix))
+}
+
+function wantsFullDetail(req: Request): boolean {
+  return req.query.detail === 'full' || req.query.full === 'true'
+}
+
+function maybeSummarizeRun(req: Request, run: unknown): unknown {
+  return wantsFullDetail(req) ? run : summarizeRun(run)
+}
+
+function maybeSummarizeCommandResult(req: Request, result: unknown): unknown {
+  if (wantsFullDetail(req) || !result || typeof result !== 'object') return result
+  const record = result as Record<string, unknown>
+  return {
+    ...record,
+    ...(record.run ? { run: summarizeRun(record.run) } : {}),
+  }
+}
+
+function summarizeRun(run: unknown): unknown {
+  if (!run || typeof run !== 'object' || Array.isArray(run)) return run
+  const record = run as Record<string, unknown>
+  const candidates = Array.isArray(record.candidates) ? record.candidates : []
+  const decisions = Array.isArray(record.decisions) ? record.decisions : []
+  const receipts = Array.isArray(record.receipts) ? record.receipts : []
+  const errors = Array.isArray(record.errors) ? record.errors : []
+  const roles = Array.isArray(record.roles) ? record.roles : []
+  return {
+    id: record.id,
+    ts: record.ts,
+    completedAt: record.completedAt,
+    config: record.config ? summarizeConfig(record.config) : undefined,
+    counts: {
+      candidates: candidates.length,
+      decisions: decisions.length,
+      receipts: receipts.length,
+      errors: errors.length,
+    },
+    roles: roles.map(role => {
+      if (!role || typeof role !== 'object' || Array.isArray(role)) return role
+      const r = role as Record<string, unknown>
+      return {
+        role: r.role,
+        ok: r.ok,
+        summary: r.summary,
+        metrics: r.metrics,
+        warnings: r.warnings,
+      }
+    }),
+    topCandidates: candidates.slice(0, 5).map(candidate => {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return candidate
+      const c = candidate as Record<string, unknown>
+      return {
+        venue: c.venue,
+        ticker: c.ticker,
+        title: c.title,
+        source: c.source,
+        strategy: c.strategy,
+        priceCents: c.priceCents,
+        volume24h: c.volume24h,
+        edgeScore: c.edgeScore,
+        reasons: c.reasons,
+      }
+    }),
+    decisions: decisions.map(decision => {
+      if (!decision || typeof decision !== 'object' || Array.isArray(decision)) return decision
+      const d = decision as Record<string, unknown>
+      const risk = d.risk && typeof d.risk === 'object' && !Array.isArray(d.risk) ? d.risk as Record<string, unknown> : undefined
+      const execution = d.execution && typeof d.execution === 'object' && !Array.isArray(d.execution) ? d.execution as Record<string, unknown> : undefined
+      return {
+        id: d.id,
+        venue: d.venue,
+        ticker: d.ticker,
+        title: d.title,
+        strategy: d.strategy,
+        style: d.style,
+        mode: d.mode,
+        action: d.action,
+        direction: d.direction,
+        quantity: d.quantity,
+        limitPrice: d.limitPrice,
+        expectedCostCents: d.expectedCostCents,
+        score: d.score,
+        status: d.status,
+        risk: risk ? { allowed: risk.allowed, reasons: risk.reasons } : undefined,
+        execution: execution ? { status: execution.status, mode: execution.mode } : undefined,
+      }
+    }),
+    errors,
+  }
+}
+
+function summarizeConfig(config: unknown): unknown {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return config
+  const record = config as Record<string, unknown>
+  return {
+    strategy: record.strategy,
+    mode: record.mode,
+    intervalMs: record.intervalMs,
+    venues: record.venues,
+    styles: record.styles,
+    maxCandidates: record.maxCandidates,
+    maxOrdersPerTick: record.maxOrdersPerTick,
+    keywords: record.keywords,
+    risk: record.risk,
+  }
 }

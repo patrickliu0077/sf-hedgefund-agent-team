@@ -76,10 +76,10 @@ function buildExecutionInput(runtime: RuntimeConfig, config: LoopConfig, decisio
     triggerType,
     triggerPrice: isMaker ? decision.limitPrice : undefined,
     rationale: decision.rationale,
-    autoExecute: config.risk.allowAutoExecute,
+    autoExecute: config.mode === 'live' ? config.risk.allowAutoExecute : false,
     source: 'sf-hedgefund-agent-team',
     sourceId: decision.id,
-    confirm: runtime.liveConfirmToken,
+    confirm: config.mode === 'live' ? runtime.liveConfirmToken : undefined,
     jurisdiction: config.risk.jurisdiction,
     compliance: {
       mode: config.mode,

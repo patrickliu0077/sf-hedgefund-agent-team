@@ -12,17 +12,24 @@ const store = new JsonlStore(config.dataDir)
 await store.init()
 const orchestrator = new HedgeFundOrchestrator(config, store)
 
-const result = await runAgentCommand(command, {
-  start: input => orchestrator.start(input),
-  stop: () => orchestrator.stop(),
-  tick: input => orchestrator.tick(input),
-  status: () => orchestrator.getState(),
-})
+try {
+  const result = await runAgentCommand(command, {
+    start: input => orchestrator.start(input),
+    stop: () => orchestrator.stop(),
+    tick: input => orchestrator.tick(input),
+    status: () => orchestrator.getState(),
+  })
 
-console.log(json ? JSON.stringify(result, null, 2) : formatResult(result))
-if (result.action === 'start') {
-  await orchestrator.tick()
-  await orchestrator.stop()
+  console.log(json ? JSON.stringify(result, null, 2) : formatResult(result))
+  if (result.action === 'start') {
+    await orchestrator.tick()
+    await orchestrator.stop()
+  }
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error)
+  if (json) console.error(JSON.stringify({ accepted: false, error: message }, null, 2))
+  else console.error(`ERROR: ${message}`)
+  process.exitCode = 1
 }
 
 function formatResult(result: AgentCommandResult): string {

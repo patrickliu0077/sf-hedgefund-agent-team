@@ -5,7 +5,8 @@ services:
     ports:
       - "8787:8787"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       PORT: "8787"
       DATA_DIR: /app/data

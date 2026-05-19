@@ -31,6 +31,7 @@ curl -X POST http://127.0.0.1:8787/v1/control/tick \
   -d '{"strategy":"hybrid","mode":"paper","maxCandidates":6,"maxOrdersPerTick":2}'
 
 curl http://127.0.0.1:8787/v1/runs
+curl 'http://127.0.0.1:8787/v1/runs?detail=full'
 ```
 
 ## Agent-Native Control
@@ -58,7 +59,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-OrbStack will expose the service at `http://127.0.0.1:8787`.
+OrbStack will expose the service at `http://127.0.0.1:8787`. `docker compose` also works without a local `.env`; it falls back to paper mode. Add `.env` when you want API keys or live-trading gates injected into the container.
 
 ## Fly.io
 
@@ -96,6 +97,8 @@ If `CONTROL_TOKEN` is set, mutating endpoints require:
 ```text
 Authorization: Bearer <CONTROL_TOKEN>
 ```
+
+Run-returning endpoints default to compact summaries. Add `?detail=full` when you need raw candidate payloads and exact shadow execution inputs.
 
 ## Modes
 
